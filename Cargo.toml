@@ -1,6 +1,15 @@
 [package]
 name = "crush"
-version = "0.1.0"
+version = "0.1.0-unstable"
 edition = "2024"
+description = "cereal's rust utility shell, a non-GNU bash alternative"
+license = "GPL-3.0-only"
+repository = "https://codeberg.org/MiraOS/CRUSH"
+readme = "README.md"
+keywords = ["shell", "bash", "posix", "unix", "cli"]
+categories = ["command-line-utilities", "os::unix-apis"]
+
+[[bin]]
+name = "crush"
 
 [dependencies]
