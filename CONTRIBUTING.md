@@ -47,6 +47,8 @@ also prefix your commit with what kind of change it is.
 for example these:
 - fix: bug name/issue reference
 - test: add tests for x
-- rewrite: optimize x
+- refactor: optimize x
 - docs: make documentation clearer in x
-- addition: add x because y
+- add: add x because y
+- extend: add x to feature z because y
+- security: fix vulnerability
