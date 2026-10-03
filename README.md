@@ -8,10 +8,15 @@ so that you don't have to worry about compatibility.
 
 # where can i find information or contact maintainers/developers?
 you can join the official MiraOS fluxer server here: https://fluxer.gg/w0Li62kd
+why no discord?
+i don't agree with discords stance on age verification, nor do i feel like setting up a bridge.
+discord is also proprietary which i do not agree with.
+you may make a discord server, but you are not allowed to say that its "official", "endorsed"
+or otherwise, although i might join.
 
 # where is CRUSH and MiraOS mirrored?
-github: https://github.com/MiraOS-git/CRUSH
-codeberg: https://codeberg.org/MiraOS/CRUSH
+- github: https://github.com/MiraOS-git/CRUSH
+- codeberg: https://codeberg.org/MiraOS/CRUSH
 
 # does CRUSH work on Windows or macOS?
 on Windows the answer is simple, no.
@@ -31,5 +36,5 @@ Artificial Intelligence can be used in contributions, however there are restrict
 - the AI is not allowed to generate over 25% of the PR.
 - AI assistance is allowed, Full AI generation isn't.
 - AI usage must be clearly labeled.
-- AI code should be rewritten and reviewed by a human if possible, to ensure quality.
+- AI code must be rewritten and reviewed by a human, to ensure quality.
 if you are caught not following these guidelines, you will be banned from contributing to CRUSH.
