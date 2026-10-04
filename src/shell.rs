@@ -29,6 +29,9 @@ impl Shell {
     }
     pub fn run(&mut self, args: &[OsString]) -> i32 {
 	self.params = args.iter().cloned().map(OsStringExt::into_vec).collect();
+	crate::repl::run(self)
+    }
+    pub fn exitcode(&self) -> i32 {
 	self.exitcode
     }
 }
