@@ -1,6 +1,7 @@
 use std::ffi::OsString;
 use std::process::ExitCode;
 
+mod lexer;
 mod repl;
 mod shell;
 
