@@ -21,6 +21,9 @@ PRs should also address only a few features at a time, they should not be monoli
 if you're for example planning to add a feature, fix a bug and add support for an OS, seperate that
 into 3 PRs, rather than 1 huge one.
 
+note that this project uses hard tabs rather than 4 spaced indents as a design choice,
+if you made your PR with four spaced indents, please run `cargo fmt` after checking `cargo fmt --check`.
+
 you should format your code using cargo, example below:
 ```sh
 cargo fmt --check
@@ -52,3 +55,6 @@ for example these:
 - add: add x because y
 - extend: add x to feature z because y
 - security: fix vulnerability
+
+the following prefixes are reserved for the project owner:
+- style: change project style (i.e. hard tabs > four spaced indent)
