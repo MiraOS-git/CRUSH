@@ -140,6 +140,19 @@ impl<'a> Lexer<'a> {
 mod tests {
 	use super::*;
 
+	fn lex(input: &[u8]) -> Vec<Token> {
+		let mut lx = Lexer::new(input);
+		let mut out = Vec::new();
+		while let Some(tok) = lx.next_token() {
+			out.push(tok);
+		}
+		out
+	}
+
+	fn op(o: Operator) -> Token {
+		Token::Op(o)
+	}
+
 	#[test]
 	fn peek_and_advance() {
 		let mut lx = Lexer::new(b"ab");
@@ -151,31 +164,19 @@ mod tests {
 		assert_eq!(lx.peek(), None);
 	}
 
-	fn lex(input: &[u8]) -> Vec<Token> {
-		let mut lx = Lexer::new(input);
-		let mut out = Vec::new();
-		while let Some(tok) = lx.next_token() {
-			out.push(tok);
-		}
-		out
-	}
-
 	#[test]
 	fn pipe() {
-		assert_eq!(lex(b"|"), vec![Token::Op(Operator::Pipe)]);
+		assert_eq!(lex(b"|"), vec![op(Operator::Pipe)]);
 	}
 
 	#[test]
 	fn or_if() {
-		assert_eq!(lex(b"||"), vec![Token::Op(Operator::OrIf)]);
+		assert_eq!(lex(b"||"), vec![op(Operator::OrIf)]);
 	}
 
 	#[test]
 	fn longest_match() {
-		assert_eq!(
-			lex(b"|||"),
-			vec![Token::Op(Operator::OrIf), Token::Op(Operator::Pipe)]
-		);
+		assert_eq!(lex(b"|||"), vec![op(Operator::OrIf), op(Operator::Pipe)]);
 	}
 
 	#[test]
@@ -190,9 +191,140 @@ mod tests {
 
 	#[test]
 	fn blanks_between_tokens() {
+		assert_eq!(lex(b"| \t |"), vec![op(Operator::Pipe), op(Operator::Pipe)]);
+	}
+
+	#[test]
+	fn amp() {
+		assert_eq!(lex(b"&"), vec![op(Operator::Amp)]);
+	}
+
+	#[test]
+	fn and_if() {
+		assert_eq!(lex(b"&&"), vec![op(Operator::AndIf)]);
+	}
+
+	#[test]
+	fn and_if_longest_match() {
+		assert_eq!(lex(b"&&&"), vec![op(Operator::AndIf), op(Operator::Amp)]);
+	}
+
+	#[test]
+	fn semi() {
+		assert_eq!(lex(b";"), vec![op(Operator::Semi)]);
+	}
+
+	#[test]
+	fn dsemi() {
+		assert_eq!(lex(b";;"), vec![op(Operator::DSemi)]);
+	}
+
+	#[test]
+	fn semi_and() {
+		assert_eq!(lex(b";&"), vec![op(Operator::SemiAnd)]);
+	}
+
+	#[test]
+	fn dsemi_longest_match() {
+		assert_eq!(lex(b";;;"), vec![op(Operator::DSemi), op(Operator::Semi)]);
+	}
+
+	#[test]
+	fn semis_split_by_blank() {
+		assert_eq!(lex(b"; ;"), vec![op(Operator::Semi), op(Operator::Semi)]);
+	}
+
+	#[test]
+	fn less() {
+		assert_eq!(lex(b"<"), vec![op(Operator::Less)]);
+	}
+
+	#[test]
+	fn dless() {
+		assert_eq!(lex(b"<<"), vec![op(Operator::DLess)]);
+	}
+
+	#[test]
+	fn dless_dash() {
+		assert_eq!(lex(b"<<-"), vec![op(Operator::DLessDash)]);
+	}
+
+	#[test]
+	fn less_and() {
+		assert_eq!(lex(b"<&"), vec![op(Operator::LessAnd)]);
+	}
+
+	#[test]
+	fn less_great() {
+		assert_eq!(lex(b"<>"), vec![op(Operator::LessGreat)]);
+	}
+
+	#[test]
+	fn dless_longest_match() {
+		assert_eq!(lex(b"<<<"), vec![op(Operator::DLess), op(Operator::Less)]);
+	}
+
+	#[test]
+	fn lesses_split_by_blank() {
+		assert_eq!(lex(b"< <"), vec![op(Operator::Less), op(Operator::Less)]);
+	}
+
+	#[test]
+	fn great() {
+		assert_eq!(lex(b">"), vec![op(Operator::Great)]);
+	}
+
+	#[test]
+	fn dgreat() {
+		assert_eq!(lex(b">>"), vec![op(Operator::DGreat)]);
+	}
+
+	#[test]
+	fn great_and() {
+		assert_eq!(lex(b">&"), vec![op(Operator::GreatAnd)]);
+	}
+
+	#[test]
+	fn clobber() {
+		assert_eq!(lex(b">|"), vec![op(Operator::Clobber)]);
+	}
+
+	#[test]
+	fn dgreat_longest_match() {
+		assert_eq!(lex(b">>>"), vec![op(Operator::DGreat), op(Operator::Great)]);
+	}
+
+	#[test]
+	fn greats_split_by_blank() {
+		assert_eq!(lex(b"> >"), vec![op(Operator::Great), op(Operator::Great)]);
+	}
+
+	#[test]
+	fn parens_with_blank() {
 		assert_eq!(
-			lex(b"| \t |"),
-			vec![Token::Op(Operator::Pipe), Token::Op(Operator::Pipe)]
+			lex(b"( )"),
+			vec![op(Operator::LParen), op(Operator::RParen)]
+		);
+	}
+
+	#[test]
+	fn parens_adjacent() {
+		assert_eq!(lex(b"()"), vec![op(Operator::LParen), op(Operator::RParen)]);
+	}
+
+	#[test]
+	fn mixed_operators() {
+		assert_eq!(
+			lex(b"|&;"),
+			vec![op(Operator::Pipe), op(Operator::Amp), op(Operator::Semi)]
+		);
+	}
+
+	#[test]
+	fn operators_across_newline() {
+		assert_eq!(
+			lex(b"&&\n||"),
+			vec![op(Operator::AndIf), Token::Newline, op(Operator::OrIf)]
 		);
 	}
 }
