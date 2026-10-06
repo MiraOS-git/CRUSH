@@ -131,9 +131,25 @@ impl<'a> Lexer<'a> {
 				self.advance();
 				Some(Token::Op(Operator::RParen))
 			}
-			_ => todo!(),
+			_ => {
+				let start = self.pos;
+				while let Some(b) = self.peek() {
+					if is_word_end(b) {
+						break;
+					}
+					self.advance();
+				}
+				Some(Token::Word(self.input[start..self.pos].to_vec()))
+			}
 		}
 	}
+}
+
+fn is_word_end(byte: u8) -> bool {
+	matches!(
+		byte,
+		b' ' | b'\t' | b'\n' | b';' | b'|' | b'&' | b'<' | b'>' | b'(' | b')'
+	)
 }
 
 #[cfg(test)]
@@ -151,6 +167,123 @@ mod tests {
 
 	fn op(o: Operator) -> Token {
 		Token::Op(o)
+	}
+
+	fn word(s: &[u8]) -> Token {
+		Token::Word(s.to_vec())
+	}
+	#[test]
+	fn single_word() {
+		assert_eq!(lex(b"echo"), vec![word(b"echo")]);
+	}
+
+	#[test]
+	fn two_words() {
+		assert_eq!(lex(b"echo hi"), vec![word(b"echo"), word(b"hi")]);
+	}
+
+	#[test]
+	fn words_with_extra_blanks() {
+		assert_eq!(lex(b"  echo \t hi  "), vec![word(b"echo"), word(b"hi")]);
+	}
+
+	#[test]
+	fn word_with_path_and_flag_chars() {
+		assert_eq!(
+			lex(b"/usr/bin/ls -la"),
+			vec![word(b"/usr/bin/ls"), word(b"-la")]
+		);
+	}
+
+	#[test]
+	fn word_with_digits_and_punctuation() {
+		assert_eq!(lex(b"a.b_c-1=2"), vec![word(b"a.b_c-1=2")]);
+	}
+
+	#[test]
+	fn word_with_non_utf8_bytes() {
+		assert_eq!(lex(b"a\xff\xfeb"), vec![word(b"a\xff\xfeb")]);
+	}
+
+	#[test]
+	fn pipe_without_blanks() {
+		assert_eq!(
+			lex(b"ls|wc"),
+			vec![word(b"ls"), op(Operator::Pipe), word(b"wc")]
+		);
+	}
+
+	#[test]
+	fn pipe_with_blanks() {
+		assert_eq!(
+			lex(b"ls | wc"),
+			vec![word(b"ls"), op(Operator::Pipe), word(b"wc")]
+		);
+	}
+
+	#[test]
+	fn redirect_without_blanks() {
+		assert_eq!(
+			lex(b"a>b"),
+			vec![word(b"a"), op(Operator::Great), word(b"b")]
+		);
+	}
+
+	#[test]
+	fn semicolon_list() {
+		assert_eq!(
+			lex(b"a;b;c"),
+			vec![
+				word(b"a"),
+				op(Operator::Semi),
+				word(b"b"),
+				op(Operator::Semi),
+				word(b"c")
+			]
+		);
+	}
+
+	#[test]
+	fn and_or_list() {
+		assert_eq!(
+			lex(b"a&&b||c"),
+			vec![
+				word(b"a"),
+				op(Operator::AndIf),
+				word(b"b"),
+				op(Operator::OrIf),
+				word(b"c")
+			]
+		);
+	}
+
+	#[test]
+	fn word_then_newline() {
+		assert_eq!(
+			lex(b"echo hi\n"),
+			vec![word(b"echo"), word(b"hi"), Token::Newline]
+		);
+	}
+
+	#[test]
+	fn two_lines() {
+		assert_eq!(lex(b"a\nb"), vec![word(b"a"), Token::Newline, word(b"b")]);
+	}
+
+	#[test]
+	fn subshell_parens() {
+		assert_eq!(
+			lex(b"(ls)"),
+			vec![op(Operator::LParen), word(b"ls"), op(Operator::RParen)]
+		);
+	}
+
+	#[test]
+	fn background_job() {
+		assert_eq!(
+			lex(b"sleep 1&"),
+			vec![word(b"sleep"), word(b"1"), op(Operator::Amp)]
+		);
 	}
 
 	#[test]
