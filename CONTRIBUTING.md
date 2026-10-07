@@ -58,6 +58,7 @@ for example these:
 - add: add x because y
 - extend: add x to feature z because y
 - security: fix vulnerability
+- chore: cleaning up, initializing, whatever
 
 the following prefixes are reserved for the project owner:
 - style: change project style (i.e. hard tabs > four spaced indent)
