@@ -30,10 +30,13 @@ cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 ```
-note that these will eventually be added to an automation script, to automate checks of
-proper formatting, warnings in the code and testing if the project passes test
-you must mention in your PR if theres any formatting issues, warnings or tests that weren't passed
-that you could not fix, and they must be fixed before a merge.
+you can run these commands manually, however i reccomend using the makefile to automate that process.
+early versions of CRUSH that aren't ready yet will fail at the cargo clippy step, to bypass this,
+you will need to call the parts of the makefile individually or manually run the commands in the makefile.
+in release versions of CRUSH, the CI standards will apply fully, but for now, in the early phases of the project,
+the CI standards are still optional.
+by default, the makefile does NOT modify code, unless you specifically call the format command, do note that
+cargo fmt can have flaws and those flaws could in theory change behavior.
 
 PRs should not bring in unnecessary dependencies, only bring in dependencies if they make sense.
 also avoid rewriting systems just because you prefer a different philosophy.
@@ -58,3 +61,9 @@ for example these:
 
 the following prefixes are reserved for the project owner:
 - style: change project style (i.e. hard tabs > four spaced indent)
+- CI: change CI processes
+
+while these prefixes are reserved for the project owner, regular maintainers and contributors, or even
+just regular users can still reccomend those changes.
+if you have an issue with how CI/style is handled currently, please open an issue or a discussion rather than a PR,
+unless that change has already been discussed.
