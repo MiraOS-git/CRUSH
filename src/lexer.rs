@@ -28,9 +28,21 @@ pub enum Operator {
 	RParen,    // )
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LexError {
+	UnterminatedSingleQuote,
+}
+
 pub struct Lexer<'a> {
 	input: &'a [u8],
 	pos: usize,
+}
+
+fn is_word_end(byte: u8) -> bool {
+	matches!(
+		byte,
+		b' ' | b'\t' | b'\n' | b';' | b'|' | b'&' | b'<' | b'>' | b'(' | b')'
+	)
 }
 
 impl<'a> Lexer<'a> {
@@ -48,44 +60,46 @@ impl<'a> Lexer<'a> {
 		self.pos += 1;
 		Some(byte)
 	}
-	pub fn next_token(&mut self) -> Option<Token> {
+	pub fn next_token(&mut self) -> Result<Option<Token>, LexError> {
 		while let Some(b' ' | b'\t') = self.peek() {
 			self.advance();
 		}
-		let byte = self.peek()?;
+		let Some(byte) = self.peek() else {
+			return Ok(None);
+		};
 		match byte {
 			b'\n' => {
 				self.advance();
-				Some(Token::Newline)
+				Ok(Some(Token::Newline))
 			}
 			b'|' => {
 				self.advance();
 				if self.peek() == Some(b'|') {
 					self.advance();
-					Some(Token::Op(Operator::OrIf))
+					Ok(Some(Token::Op(Operator::OrIf)))
 				} else {
-					Some(Token::Op(Operator::Pipe))
+					Ok(Some(Token::Op(Operator::Pipe)))
 				}
 			}
 			b'&' => {
 				self.advance();
 				if self.peek() == Some(b'&') {
 					self.advance();
-					Some(Token::Op(Operator::AndIf))
+					Ok(Some(Token::Op(Operator::AndIf)))
 				} else {
-					Some(Token::Op(Operator::Amp))
+					Ok(Some(Token::Op(Operator::Amp)))
 				}
 			}
 			b';' => {
 				self.advance();
 				if self.peek() == Some(b';') {
 					self.advance();
-					Some(Token::Op(Operator::DSemi))
+					Ok(Some(Token::Op(Operator::DSemi)))
 				} else if self.peek() == Some(b'&') {
 					self.advance();
-					Some(Token::Op(Operator::SemiAnd))
+					Ok(Some(Token::Op(Operator::SemiAnd)))
 				} else {
-					Some(Token::Op(Operator::Semi))
+					Ok(Some(Token::Op(Operator::Semi)))
 				}
 			}
 			b'<' => {
@@ -94,62 +108,65 @@ impl<'a> Lexer<'a> {
 					self.advance();
 					if self.peek() == Some(b'-') {
 						self.advance();
-						Some(Token::Op(Operator::DLessDash))
+						Ok(Some(Token::Op(Operator::DLessDash)))
 					} else {
-						Some(Token::Op(Operator::DLess))
+						Ok(Some(Token::Op(Operator::DLess)))
 					}
 				} else if self.peek() == Some(b'&') {
 					self.advance();
-					Some(Token::Op(Operator::LessAnd))
+					Ok(Some(Token::Op(Operator::LessAnd)))
 				} else if self.peek() == Some(b'>') {
 					self.advance();
-					Some(Token::Op(Operator::LessGreat))
+					Ok(Some(Token::Op(Operator::LessGreat)))
 				} else {
-					Some(Token::Op(Operator::Less))
+					Ok(Some(Token::Op(Operator::Less)))
 				}
 			}
 			b'>' => {
 				self.advance();
 				if self.peek() == Some(b'>') {
 					self.advance();
-					Some(Token::Op(Operator::DGreat))
+					Ok(Some(Token::Op(Operator::DGreat)))
 				} else if self.peek() == Some(b'&') {
 					self.advance();
-					Some(Token::Op(Operator::GreatAnd))
+					Ok(Some(Token::Op(Operator::GreatAnd)))
 				} else if self.peek() == Some(b'|') {
 					self.advance();
-					Some(Token::Op(Operator::Clobber))
+					Ok(Some(Token::Op(Operator::Clobber)))
 				} else {
-					Some(Token::Op(Operator::Great))
+					Ok(Some(Token::Op(Operator::Great)))
 				}
 			}
 			b'(' => {
 				self.advance();
-				Some(Token::Op(Operator::LParen))
+				Ok(Some(Token::Op(Operator::LParen)))
 			}
 			b')' => {
 				self.advance();
-				Some(Token::Op(Operator::RParen))
+				Ok(Some(Token::Op(Operator::RParen)))
 			}
 			_ => {
 				let start = self.pos;
 				while let Some(b) = self.peek() {
-					if is_word_end(b) {
+					if b == b'\'' {
+						self.advance();
+						loop {
+							match self.advance() {
+								Some(b'\'') => break,
+								Some(_) => {}
+								None => return Err(LexError::UnterminatedSingleQuote),
+							}
+						}
+					} else if is_word_end(b) {
 						break;
+					} else {
+						self.advance();
 					}
-					self.advance();
 				}
-				Some(Token::Word(self.input[start..self.pos].to_vec()))
+				Ok(Some(Token::Word(self.input[start..self.pos].to_vec())))
 			}
 		}
 	}
-}
-
-fn is_word_end(byte: u8) -> bool {
-	matches!(
-		byte,
-		b' ' | b'\t' | b'\n' | b';' | b'|' | b'&' | b'<' | b'>' | b'(' | b')'
-	)
 }
 
 #[cfg(test)]
@@ -159,10 +176,21 @@ mod tests {
 	fn lex(input: &[u8]) -> Vec<Token> {
 		let mut lx = Lexer::new(input);
 		let mut out = Vec::new();
-		while let Some(tok) = lx.next_token() {
+		while let Some(tok) = lx.next_token().unwrap() {
 			out.push(tok);
 		}
 		out
+	}
+
+	fn lex_err(input: &[u8]) -> LexError {
+		let mut lx = Lexer::new(input);
+		loop {
+			match lx.next_token() {
+				Ok(Some(_)) => {}
+				Ok(None) => panic!("expected a lex error"),
+				Err(e) => return e,
+			}
+		}
 	}
 
 	fn op(o: Operator) -> Token {
@@ -172,6 +200,65 @@ mod tests {
 	fn word(s: &[u8]) -> Token {
 		Token::Word(s.to_vec())
 	}
+
+	#[test]
+	fn single_quoted_word() {
+		assert_eq!(lex(b"'a b'"), vec![word(b"'a b'")]);
+	}
+
+	#[test]
+	fn single_quoted_argument() {
+		assert_eq!(lex(b"echo 'a b'"), vec![word(b"echo"), word(b"'a b'")]);
+	}
+
+	#[test]
+	fn single_quotes_protect_operators() {
+		assert_eq!(lex(b"'a|b;c'"), vec![word(b"'a|b;c'")]);
+	}
+
+	#[test]
+	fn adjacent_quoted_parts_join() {
+		assert_eq!(lex(b"'a'b'c'"), vec![word(b"'a'b'c'")]);
+	}
+
+	#[test]
+	fn quote_in_middle_of_word() {
+		assert_eq!(lex(b"a'b c'd"), vec![word(b"a'b c'd")]);
+	}
+
+	#[test]
+	fn empty_single_quotes() {
+		assert_eq!(lex(b"''"), vec![word(b"''")]);
+	}
+
+	#[test]
+	fn backslash_is_literal_in_single_quotes() {
+		assert_eq!(lex(b"'\\n'"), vec![word(b"'\\n'")]);
+	}
+
+	#[test]
+	fn newline_inside_single_quotes() {
+		assert_eq!(lex(b"'a\nb'"), vec![word(b"'a\nb'")]);
+	}
+
+	#[test]
+	fn quoted_word_then_operator() {
+		assert_eq!(
+			lex(b"'a'|b"),
+			vec![word(b"'a'"), op(Operator::Pipe), word(b"b")]
+		);
+	}
+
+	#[test]
+	fn unterminated_single_quote() {
+		assert_eq!(lex_err(b"'abc"), LexError::UnterminatedSingleQuote);
+	}
+
+	#[test]
+	fn unterminated_single_quote_after_word() {
+		assert_eq!(lex_err(b"echo 'abc"), LexError::UnterminatedSingleQuote);
+	}
+
 	#[test]
 	fn single_word() {
 		assert_eq!(lex(b"echo"), vec![word(b"echo")]);
