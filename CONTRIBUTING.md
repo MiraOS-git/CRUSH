@@ -59,6 +59,7 @@ for example these:
 - extend: add x to feature z because y
 - security: fix vulnerability
 - chore: cleaning up, initializing, whatever
+- WIP: working on x, not allowed in branch: MAIN
 
 the following prefixes are reserved for the project owner:
 - style: change project style (i.e. hard tabs > four spaced indent)
@@ -68,3 +69,10 @@ while these prefixes are reserved for the project owner, regular maintainers and
 just regular users can still reccomend those changes.
 if you have an issue with how CI/style is handled currently, please open an issue or a discussion rather than a PR,
 unless that change has already been discussed.
+
+please remember that WIP is not allowed in the branch MAIN and should be resolved by the time its in
+your PR.
+allowing/expecting dead code or other things to bypass CI should not be in a PR.
+your PR will not be accepted if it includes CI bypasses, until your CI bypasses are resolved.
+CI bypasses are in certain parts of CRUSH as of 0.4-unstable, however that is a temporary solution.
+as soon as CRUSH exits the -unstable basis, CI bypasses will be fully banned from branch MAIN.
