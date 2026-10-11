@@ -31,6 +31,7 @@ pub enum Operator {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LexError {
 	UnterminatedSingleQuote,
+	TrailingBackslash,
 }
 
 pub struct Lexer<'a> {
@@ -61,8 +62,17 @@ impl<'a> Lexer<'a> {
 		Some(byte)
 	}
 	pub fn next_token(&mut self) -> Result<Option<Token>, LexError> {
-		while let Some(b' ' | b'\t') = self.peek() {
-			self.advance();
+		loop {
+			match self.peek() {
+				Some(b' ' | b'\t') => {
+					self.advance();
+				}
+				Some(b'\\') if self.peek_at(1) == Some(b'\n') => {
+					self.advance();
+					self.advance();
+				}
+				_ => break,
+			}
 		}
 		let Some(byte) = self.peek() else {
 			return Ok(None);
@@ -156,6 +166,11 @@ impl<'a> Lexer<'a> {
 								Some(_) => {}
 								None => return Err(LexError::UnterminatedSingleQuote),
 							}
+						}
+					} else if b == b'\\' {
+						self.advance();
+						if self.advance().is_none() {
+							return Err(LexError::TrailingBackslash);
 						}
 					} else if is_word_end(b) {
 						break;
@@ -546,5 +561,68 @@ mod tests {
 			lex(b"&&\n||"),
 			vec![op(Operator::AndIf), Token::Newline, op(Operator::OrIf)]
 		);
+	}
+
+	#[test]
+	fn escaped_space() {
+		assert_eq!(lex(b"a\\ b"), vec![word(b"a\\ b")]);
+	}
+
+	#[test]
+	fn escaped_pipe() {
+		assert_eq!(lex(b"a\\|b"), vec![word(b"a\\|b")]);
+	}
+
+	#[test]
+	fn escaped_semicolon() {
+		assert_eq!(lex(b"\\;"), vec![word(b"\\;")]);
+	}
+
+	#[test]
+	fn escaped_backslash() {
+		assert_eq!(lex(b"\\\\"), vec![word(b"\\\\")]);
+	}
+
+	#[test]
+	fn escaped_quote_does_not_open_quote() {
+		assert_eq!(lex(b"a\\'b"), vec![word(b"a\\'b")]);
+	}
+
+	#[test]
+	fn backslash_before_closing_single_quote() {
+		assert_eq!(lex(b"'a\\'"), vec![word(b"'a\\'")]);
+	}
+
+	#[test]
+	fn escaped_operator_then_real_operator() {
+		assert_eq!(
+			lex(b"a\\|b|c"),
+			vec![word(b"a\\|b"), op(Operator::Pipe), word(b"c")]
+		);
+	}
+
+	#[test]
+	fn continuation_between_words() {
+		assert_eq!(lex(b"echo \\\nhi"), vec![word(b"echo"), word(b"hi")]);
+	}
+
+	#[test]
+	fn continuation_inside_word() {
+		assert_eq!(lex(b"ec\\\nho"), vec![word(b"ec\\\nho")]);
+	}
+
+	#[test]
+	fn continuation_at_start_of_input() {
+		assert_eq!(lex(b"\\\necho"), vec![word(b"echo")]);
+	}
+
+	#[test]
+	fn trailing_backslash() {
+		assert_eq!(lex_err(b"abc\\"), LexError::TrailingBackslash);
+	}
+
+	#[test]
+	fn bare_backslash() {
+		assert_eq!(lex_err(b"\\"), LexError::TrailingBackslash);
 	}
 }
