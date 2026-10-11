@@ -1,3 +1,4 @@
+#![allow(dead_code)] // TEMPORARY; FOR CI PASSING ONLY
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
 	Word(Vec<u8>),

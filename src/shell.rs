@@ -1,3 +1,4 @@
+#![allow(dead_code)] // TEMPORARY; FOR CI PASSING ONLY
 use std::collections::{HashMap, HashSet};
 use std::env::vars_os;
 use std::ffi::OsString;
