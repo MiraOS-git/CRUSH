@@ -64,6 +64,7 @@ for example these:
 the following prefixes are reserved for the project owner:
 - style: change project style (i.e. hard tabs > four spaced indent)
 - CI: change CI processes
+- bump: change version numbering
 
 while these prefixes are reserved for the project owner, regular maintainers and contributors, or even
 just regular users can still reccomend those changes.
